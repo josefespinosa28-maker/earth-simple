@@ -26,6 +26,12 @@
                     >
                         Inicio
                     </a>
+                    <a
+                        href="{{ route('evaluar-zona') }}"
+                        class="inline-flex items-center min-h-[56px] px-4 rounded-lg text-[18px] leading-[24px] font-bold transition-colors focus:outline-none focus:ring-[3px] focus:ring-[#1B5E20] {{ request()->routeIs('evaluar-zona') ? 'bg-[#E8F5E9] text-[#1B5E20] border-2 border-[#2E7D32]' : 'text-[#41493E] hover:bg-[#F4F3F1] hover:text-[#1A1C1A] border-2 border-transparent' }}"
+                    >
+                        Evaluar zona
+                    </a>
                 </div>
             </div>
 
@@ -154,6 +160,12 @@
                 class="flex items-center min-h-[56px] px-4 rounded-lg text-[18px] font-bold {{ request()->routeIs('dashboard') ? 'bg-[#E8F5E9] text-[#1B5E20] border-2 border-[#2E7D32]' : 'text-[#1A1C1A] hover:bg-[#F4F3F1]' }}"
             >
                 Inicio
+            </a>
+            <a
+                href="{{ route('evaluar-zona') }}"
+                class="flex items-center min-h-[56px] px-4 rounded-lg text-[18px] font-bold {{ request()->routeIs('evaluar-zona') ? 'bg-[#E8F5E9] text-[#1B5E20] border-2 border-[#2E7D32]' : 'text-[#1A1C1A] hover:bg-[#F4F3F1]' }}"
+            >
+                Evaluar zona
             </a>
         </div>
 

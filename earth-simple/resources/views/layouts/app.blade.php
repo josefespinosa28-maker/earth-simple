@@ -1,53 +1,49 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Earth-simple') }}</title>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <!-- Fonts: Plus Jakarta Sans (Agro Daylight High-Contrast) -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet" />
+    <title>{{ config('app.name', 'Earth-simple') }}</title>
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Fonts: Plus Jakarta Sans (Agro Daylight High-Contrast) -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap"
+        rel="stylesheet" />
 
-        <!-- Styles -->
-        @livewireStyles
-    </head>
-    <body class="bg-[#FAF9F6] text-[#1A1C1A] font-sans antialiased selection:bg-[#1B5E20] selection:text-white">
-        <x-banner />
+    <!-- Scripts -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-        <div class="min-h-screen flex flex-col bg-[#FAF9F6] text-[#1A1C1A]">
-            @livewire('navigation-menu')
+    <!-- Styles -->
+    @livewireStyles
+</head>
 
-            <!-- Page Heading (opcional para vistas internas como Perfil) -->
-            @if (isset($header))
-                <header class="bg-[#FFFFFF] border-b-2 border-[#E0DED7]">
-                    <div class="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endif
+<body class="bg-[#FAF9F6] text-[#1A1C1A] font-sans antialiased selection:bg-[#1B5E20] selection:text-white">
+    <x-banner />
 
-            <!-- Page Content -->
-            <main class="flex-1">
-                {{ $slot }}
-            </main>
+    <div class="min-h-screen flex flex-col bg-[#FAF9F6] text-[#1A1C1A]">
+        @livewire('navigation-menu')
 
-            <!-- Pie de página general -->
-            <footer class="w-full bg-[#FFFFFF] border-t-2 border-[#E0DED7] mt-12">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[16px] leading-[22px] font-semibold text-[#41493E]">
-                    <span>Earth-simple — Apoyo a decisiones de rotación agrícola</span>
-                    <span>Datos satelitales NASA POWER y MODIS</span>
+        <!-- Page Heading (opcional para vistas internas como Perfil) -->
+        @if (isset($header))
+            <header class="bg-[#FFFFFF] border-b-2 border-[#E0DED7]">
+                <div class="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8">
+                    {{ $header }}
                 </div>
-            </footer>
-        </div>
+            </header>
+        @endif
 
-        @stack('modals')
+        <!-- Page Content -->
+        <main class="flex-1">
+            {{ $slot }}
+        </main>
+    </div>
 
-        @livewireScripts
-    </body>
+    @stack('modals')
+
+    @livewireScripts
+</body>
+
 </html>

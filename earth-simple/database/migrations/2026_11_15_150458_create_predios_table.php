@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
@@ -17,7 +18,6 @@ return new class extends Migration {
             // Relación obligatoria con el usuario registrado (si se borra el usuario, se borran sus predios)
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
 
-            $table->string('nombre', 150);
             $table->string('ubicacion_texto', 150)->nullable();
 
             // Superficie calculada en hectáreas (ej. 12.5000 ha)
