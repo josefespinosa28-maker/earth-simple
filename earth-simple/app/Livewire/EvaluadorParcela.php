@@ -21,11 +21,13 @@ class EvaluadorParcela extends Component
     public ?string $cultivoActual = null;
 
     public ?array $respuestaNasa = null;
+    public int $indiceRecomendacionElegida = 0;
     public ?string $mensajeError = null;
 
     public bool $guardadoExitoso = false;
     public ?int $predioGuardadoId = null;
     public ?int $consultaNasaGuardadaId = null;
+    public ?int $rotacionGuardadaId = null;
 
     protected function rules(): array
     {
@@ -64,7 +66,7 @@ class EvaluadorParcela extends Component
     }
 
     /**
-     * Paso 1 -> Paso 2: Valida las medidas e invoca el servicio de Python (NASA POWER) mediante PredioService.
+     * Paso 1 -> Paso 2: Valida las medidas e invoca el servicio de Python (NASA POWER + MODIS + Reglas).
      */
     public function analizarPasoUno(PredioService $predioService): void
     {
@@ -80,6 +82,7 @@ class EvaluadorParcela extends Component
                 $this->cultivoActual
             );
 
+            $this->indiceRecomendacionElegida = 0;
             $this->paso = 2;
         } catch (Throwable $error) {
             $this->mensajeError = $error->getMessage();
@@ -87,7 +90,7 @@ class EvaluadorParcela extends Component
     }
 
     /**
-     * Regresa al Paso 1 para ajustar dimensiones o cultivo anterior.
+     * Regresa al Paso 1 (Medición del terreno).
      */
     public function volverPasoUno(): void
     {
@@ -96,7 +99,45 @@ class EvaluadorParcela extends Component
     }
 
     /**
-     * Ejecuta la transacción en PredioService para guardar el Predio y la ConsultaNasa en la base de datos.
+     * Paso 2 -> Paso 3: Avanza a la vista de Recomendaciones de Siembra sin guardar aún en BD.
+     */
+    public function irAPasoTres(): void
+    {
+        $this->mensajeError = null;
+
+        if (empty($this->respuestaNasa)) {
+            $this->mensajeError = 'Primero debes ejecutar el diagnóstico satelital en el Paso 1.';
+            $this->paso = 1;
+            return;
+        }
+
+        $this->paso = 3;
+    }
+
+    /**
+     * Regresa del Paso 3 al Paso 2 (Diagnóstico Clima).
+     */
+    public function volverPasoDos(): void
+    {
+        $this->mensajeError = null;
+        $this->paso = 2;
+    }
+
+    /**
+     * Selecciona cuál de las tarjetas de cultivo recomendado en el Paso 3 desea sembrar el agricultor.
+     */
+    public function seleccionarRecomendacion(int $indice): void
+    {
+        $recomendaciones = $this->respuestaNasa['recommendations'] ?? [];
+        if (isset($recomendaciones[$indice])) {
+            $this->indiceRecomendacionElegida = $indice;
+            $this->cultivoActual = $recomendaciones[$indice]['recommended_crop'] ?? null;
+        }
+    }
+
+    /**
+     * Paso 3 (Acción final): Ejecuta la transacción en PredioService para guardar en BD:
+     * `predios`, `consultas_nasa` y `rotaciones_recomendadas`.
      */
     public function guardarEvaluacion(PredioService $predioService): void
     {
@@ -114,6 +155,10 @@ class EvaluadorParcela extends Component
             return;
         }
 
+        $recomendaciones = $this->respuestaNasa['recommendations'] ?? [];
+        $recomendacionElegida = $recomendaciones[$this->indiceRecomendacionElegida]
+            ?? ($recomendaciones[0] ?? null);
+
         try {
             $resultado = $predioService->guardarPredioYConsulta(
                 (int) $userId,
@@ -122,13 +167,15 @@ class EvaluadorParcela extends Component
                     'ancho_metros' => (float) $this->anchoMetros,
                     'largo_metros' => (float) $this->largoMetros,
                     'cultivo_anterior' => $this->cultivoAnterior,
-                    'cultivo_actual' => $this->cultivoActual,
+                    'cultivo_actual' => $recomendacionElegida['recommended_crop'] ?? $this->cultivoActual,
                 ],
-                $this->respuestaNasa
+                $this->respuestaNasa,
+                $recomendacionElegida
             );
 
             $this->predioGuardadoId = $resultado['predio']->id;
             $this->consultaNasaGuardadaId = $resultado['consulta_nasa']->id;
+            $this->rotacionGuardadaId = $resultado['rotacion_recomendada']?->id;
             $this->guardadoExitoso = true;
             $this->paso = 3;
         } catch (Throwable $error) {
@@ -143,10 +190,12 @@ class EvaluadorParcela extends Component
     {
         $this->reset([
             'respuestaNasa',
+            'indiceRecomendacionElegida',
             'mensajeError',
             'guardadoExitoso',
             'predioGuardadoId',
             'consultaNasaGuardadaId',
+            'rotacionGuardadaId',
         ]);
         $this->anchoMetros = 50;
         $this->largoMetros = 80;
