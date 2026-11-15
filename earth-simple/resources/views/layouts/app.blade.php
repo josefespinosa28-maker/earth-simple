@@ -5,11 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'Earth-simple') }}</title>
 
-        <!-- Fonts -->
+        <!-- Fonts: Plus Jakarta Sans (Agro Daylight High-Contrast) -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -17,25 +17,33 @@
         <!-- Styles -->
         @livewireStyles
     </head>
-    <body class="font-sans antialiased">
+    <body class="bg-[#FAF9F6] text-[#1A1C1A] font-sans antialiased selection:bg-[#1B5E20] selection:text-white">
         <x-banner />
 
-        <div class="min-h-screen bg-gray-100">
+        <div class="min-h-screen flex flex-col bg-[#FAF9F6] text-[#1A1C1A]">
             @livewire('navigation-menu')
 
-            <!-- Page Heading -->
+            <!-- Page Heading (opcional para vistas internas como Perfil) -->
             @if (isset($header))
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <header class="bg-[#FFFFFF] border-b-2 border-[#E0DED7]">
+                    <div class="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
                 </header>
             @endif
 
             <!-- Page Content -->
-            <main>
+            <main class="flex-1">
                 {{ $slot }}
             </main>
+
+            <!-- Pie de página general -->
+            <footer class="w-full bg-[#FFFFFF] border-t-2 border-[#E0DED7] mt-12">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[16px] leading-[22px] font-semibold text-[#41493E]">
+                    <span>Earth-simple — Apoyo a decisiones de rotación agrícola</span>
+                    <span>Datos satelitales NASA POWER y MODIS</span>
+                </div>
+            </footer>
         </div>
 
         @stack('modals')
