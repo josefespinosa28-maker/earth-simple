@@ -1,0 +1,25 @@
+# Variables de entorno
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/venv/
+
+# Laravel
+**/vendor/
+**/storage/*.key
+**/bootstrap/cache/*.php
+
+# Node
+**/node_modules/
+
+# Logs
+**/*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
