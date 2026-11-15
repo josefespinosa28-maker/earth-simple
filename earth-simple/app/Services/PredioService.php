@@ -27,7 +27,7 @@ class PredioService
     }
 
     /**
-     * Catálogo de cultivos anteriores con su familia botánica para el contrato de FastAPI.
+     * Catálogo de cultivos anteriores con su familia botánica y tipo de ciclo para el motor de reglas en Python.
      */
     public static function catalogoCultivosAnteriores(): array
     {
@@ -35,26 +35,32 @@ class PredioService
             'Maíz' => [
                 'etiqueta' => 'Maíz (Agota nitrógeno)',
                 'familia_botanica' => 'Poaceae',
+                'tipo_ciclo' => 'annual',
             ],
             'Frijol' => [
                 'etiqueta' => 'Frijol (Fija nitrógeno)',
                 'familia_botanica' => 'Fabaceae',
+                'tipo_ciclo' => 'annual',
             ],
             'Trigo' => [
                 'etiqueta' => 'Trigo (Cereal de grano)',
                 'familia_botanica' => 'Poaceae',
+                'tipo_ciclo' => 'annual',
             ],
             'Cebada' => [
                 'etiqueta' => 'Cebada (Ciclo corto)',
                 'familia_botanica' => 'Poaceae',
+                'tipo_ciclo' => 'annual',
             ],
             'Haba' => [
                 'etiqueta' => 'Haba (Leguminosa de altura)',
                 'familia_botanica' => 'Fabaceae',
+                'tipo_ciclo' => 'annual',
             ],
-            'Calabaza' => [
-                'etiqueta' => 'Calabaza (Cobertura de suelo)',
-                'familia_botanica' => 'Cucurbitaceae',
+            'Avena' => [
+                'etiqueta' => 'Avena (Forraje y grano)',
+                'familia_botanica' => 'Poaceae',
+                'tipo_ciclo' => 'annual',
             ],
         ];
     }
@@ -83,8 +89,8 @@ class PredioService
     }
 
     /**
-     * Consulta el microservicio de Python (NASA POWER) combinando los datos del agricultor
-     * con los parámetros de prueba de web.php.
+     * Consulta el microservicio de Python (NASA POWER + MODIS + SRTM y MotorReglasCultivos)
+     * combinando los datos del agricultor con los parámetros de prueba de web.php.
      */
     public function consultarClimaParcela(
         float $anchoMetros,
@@ -95,7 +101,9 @@ class PredioService
         $superficie = $this->calcularSuperficie($anchoMetros, $largoMetros);
         $catalogo = self::catalogoCultivosAnteriores();
         $familiaBotanica = $catalogo[$cultivoAnterior]['familia_botanica'] ?? 'Poaceae';
+        $tipoCiclo = $catalogo[$cultivoAnterior]['tipo_ciclo'] ?? 'annual';
 
+        // Enviamos dos ciclos anuales recientes del cultivo anterior para activar las reglas de rotación de familias en Python
         $parcelaPrueba = [
             'id' => 1,
             'latitud' => self::LATITUD_PRUEBA,
@@ -107,9 +115,18 @@ class PredioService
                 [
                     'crop_name' => $cultivoAnterior,
                     'botanical_family' => $familiaBotanica,
+                    'sowing_date' => '2024-05-10',
+                    'harvest_date' => '2024-10-15',
+                    'yield_tons_per_ha' => 3.6,
+                    'crop_cycle_type' => $tipoCiclo,
+                ],
+                [
+                    'crop_name' => $cultivoAnterior,
+                    'botanical_family' => $familiaBotanica,
                     'sowing_date' => '2025-05-10',
                     'harvest_date' => '2025-10-15',
                     'yield_tons_per_ha' => 3.8,
+                    'crop_cycle_type' => $tipoCiclo,
                 ],
             ],
         ];
@@ -120,7 +137,8 @@ class PredioService
             self::FECHA_FIN_PRUEBA
         );
 
-        $respuesta['estado_respuesta'] = 'exitoso';
+        $tieneAdvertencias = !empty($respuesta['data_warnings']);
+        $respuesta['estado_respuesta'] = $tieneAdvertencias ? 'parcial' : 'exitoso';
         $respuesta['fecha_inicio_datos'] = self::FECHA_INICIO_PRUEBA;
         $respuesta['fecha_fin_datos'] = self::FECHA_FIN_PRUEBA;
         $respuesta['superficie'] = $superficie;
@@ -131,13 +149,16 @@ class PredioService
     }
 
     /**
-     * Guarda en una sola transacción de base de datos el registro en `predios`
-     * y el resultado climático en `consultas_nasa` (más `rotaciones_recomendadas` si existen).
+     * Guarda hasta el Paso 3 en una sola transacción de base de datos:
+     * 1) Los datos iniciales del predio en `predios`
+     * 2) Las métricas climáticas en `consultas_nasa`
+     * 3) La recomendación de rotación seleccionada en `rotaciones_recomendadas`
      */
     public function guardarPredioYConsulta(
         int $userId,
         array $datosPredio,
-        array $respuestaNasa
+        array $respuestaNasa,
+        ?array $recomendacionElegida = null
     ): array {
         $anchoMetros = (float) ($datosPredio['ancho_metros'] ?? 50);
         $largoMetros = (float) ($datosPredio['largo_metros'] ?? 80);
@@ -149,8 +170,12 @@ class PredioService
         // Construir geometrías PostGIS válidas (SRID 4326) a partir del centroide y las dimensiones en metros
         $geometrias = $this->construirGeometriasWkt($latitud, $longitud, $anchoMetros, $largoMetros);
 
-        $recomendacionPrincipal = $respuestaNasa['recommendations'][0]['recommended_crop'] ?? null;
-        $cultivoActual = $datosPredio['cultivo_actual'] ?: $recomendacionPrincipal;
+        // Determinar la recomendación elegida (por defecto la #1 de mayor puntaje de Python)
+        $recomendacionElegida = $recomendacionElegida
+            ?? ($respuestaNasa['recommendations'][0] ?? null);
+
+        $cultivoRecomendadoNombre = $recomendacionElegida['recommended_crop'] ?? null;
+        $cultivoActual = $datosPredio['cultivo_actual'] ?: $cultivoRecomendadoNombre;
 
         $metricas = $respuestaNasa['climate_metrics'] ?? [];
 
@@ -161,8 +186,10 @@ class PredioService
             $cultivoActual,
             $geometrias,
             $respuestaNasa,
-            $metricas
+            $metricas,
+            $recomendacionElegida
         ) {
+            // 1. Insertar en `predios`
             $predio = Predio::create([
                 'user_id' => $userId,
                 'ubicacion_texto' => $datosPredio['ubicacion_texto'] ?? self::UBICACION_PRUEBA,
@@ -173,9 +200,15 @@ class PredioService
                 'centroide' => DB::raw("extensions.ST_GeomFromText('{$geometrias['centroide_wkt']}', 4326)"),
             ]);
 
+            // 2. Insertar en `consultas_nasa`
+            $estadoRespuesta = $respuestaNasa['estado_respuesta'] ?? 'exitoso';
+            if (!in_array($estadoRespuesta, ['exitoso', 'parcial', 'error'], true)) {
+                $estadoRespuesta = 'exitoso';
+            }
+
             $consultaNasa = ConsultaNasa::create([
                 'predio_id' => $predio->id,
-                'estado_respuesta' => $respuestaNasa['estado_respuesta'] ?? 'exitoso',
+                'estado_respuesta' => $estadoRespuesta,
                 'fecha_inicio_datos' => $respuestaNasa['fecha_inicio_datos'] ?? self::FECHA_INICIO_PRUEBA,
                 'fecha_fin_datos' => $respuestaNasa['fecha_fin_datos'] ?? self::FECHA_FIN_PRUEBA,
                 'temp_promedio' => isset($metricas['avg_temp_c']) ? (float) $metricas['avg_temp_c'] : null,
@@ -185,26 +218,27 @@ class PredioService
                 'humedad_suelo' => isset($metricas['avg_root_soil_moisture']) ? (float) $metricas['avg_root_soil_moisture'] : null,
             ]);
 
-            $rotacionesGuardadas = [];
-            if (!empty($respuestaNasa['recommendations']) && is_array($respuestaNasa['recommendations'])) {
-                foreach ($respuestaNasa['recommendations'] as $rec) {
-                    if (!empty($rec['recommended_crop'])) {
-                        $rotacionesGuardadas[] = RotacionRecomendada::create([
-                            'predio_id' => $predio->id,
-                            'cultivo_recomendado' => (string) $rec['recommended_crop'],
-                            'familia_botanica' => isset($rec['botanical_family']) ? (string) $rec['botanical_family'] : null,
-                            'puntaje_compatibilidad' => isset($rec['score']) && is_numeric($rec['score'])
-                                ? (float) $rec['score']
-                                : null,
-                        ]);
-                    }
-                }
+            // 3. Insertar en `rotaciones_recomendadas` la recomendación de rotación de cultivo
+            $rotacionGuardada = null;
+            if (!empty($recomendacionElegida['recommended_crop'])) {
+                $puntaje = isset($recomendacionElegida['score']) && is_numeric($recomendacionElegida['score'])
+                    ? max(0.0, min(100.0, (float) $recomendacionElegida['score']))
+                    : null;
+
+                $rotacionGuardada = RotacionRecomendada::create([
+                    'predio_id' => $predio->id,
+                    'cultivo_recomendado' => (string) $recomendacionElegida['recommended_crop'],
+                    'familia_botanica' => isset($recomendacionElegida['botanical_family'])
+                        ? (string) $recomendacionElegida['botanical_family']
+                        : null,
+                    'puntaje_compatibilidad' => $puntaje,
+                ]);
             }
 
             return [
                 'predio' => $predio,
                 'consulta_nasa' => $consultaNasa,
-                'rotaciones' => $rotacionesGuardadas,
+                'rotacion_recomendada' => $rotacionGuardada,
             ];
         });
     }
@@ -219,7 +253,6 @@ class PredioService
         float $anchoMetros,
         float $largoMetros
     ): array {
-        // Conversión aproximada de metros a grados en la latitud de la parcela
         $metrosPorGradoLat = 111320.0;
         $metrosPorGradoLng = max(111320.0 * cos(deg2rad($latitud)), 10000.0);
 
@@ -234,7 +267,6 @@ class PredioService
         $centroLng = round($longitud, 6);
         $centroLat = round($latitud, 6);
 
-        // En WKT PostGIS el anillo exterior del polígono debe cerrar en el primer vértice
         $poligonoWkt = sprintf(
             'POLYGON((%F %F, %F %F, %F %F, %F %F, %F %F))',
             $minLng,
