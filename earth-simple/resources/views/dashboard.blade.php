@@ -16,7 +16,7 @@
                 <!-- Botón Primario: Evaluar zona (altura mín. 56px, #1B5E20) -->
                 <div class="pt-1">
                     <a
-                        href="#datos-analizados"
+                        href="#evaluador-parcela"
                         class="inline-flex items-center justify-center gap-3 w-full sm:w-auto min-h-[56px] px-7 py-3.5 rounded-lg bg-[#1B5E20] hover:bg-[#00450D] active:bg-[#0D3311] text-[#FFFFFF] text-[18px] leading-[24px] font-bold tracking-[0.01em] border-2 border-[#00450D] border-b-[4px] focus:outline-none focus:ring-[3px] focus:ring-[#1B5E20] focus:ring-offset-2 transition-colors"
                     >
                         <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -91,6 +91,11 @@
                     </figcaption>
                 </figure>
             </div>
+        </section>
+
+        <!-- Sección Interactiva: Evaluador de Parcela (Livewire + Alpine.js + FastAPI NASA POWER) -->
+        <section id="evaluador-parcela" aria-label="Evaluación agroclimática de parcela" class="scroll-mt-24 pt-4 border-t-2 border-[#E0DED7]">
+            <livewire:evaluador-parcela />
         </section>
 
         <!-- Sección 2: ¿Qué datos analizamos para ti? -->
