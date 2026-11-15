@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'agro_engine' => [
+        'url' => env('AGRO_ENGINE_URL', 'http://127.0.0.1:8001/api/v1'),
+        'timeout' => env('AGRO_ENGINE_TIMEOUT', 25),
+    ],
+
 ];

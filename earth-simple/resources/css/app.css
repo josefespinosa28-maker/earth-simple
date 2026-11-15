@@ -1,9 +1,45 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+[x-cloak] {
+    display: none;
+}
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+@layer components {
+    /* Agro Daylight High-Contrast Form Input (56px height, 2px solid #5D4037, 3px solid #1B5E20 on focus) */
+    .agro-input {
+        @apply w-full h-14 px-4 bg-[#FFFFFF] text-[#1A1C1A] text-[18px] leading-[28px] font-medium rounded-lg border-2 border-[#5D4037] transition-colors duration-150;
+        box-shadow: none !important;
+    }
+
+    .agro-input::placeholder {
+        @apply text-[#717A6D] font-normal;
+    }
+
+    .agro-input:focus {
+        outline: 3px solid #1B5E20 !important;
+        outline-offset: 0px !important;
+        border-color: #1B5E20 !important;
+        box-shadow: none !important;
+        --tw-ring-shadow: 0 0 #0000 !important;
+    }
+
+    /* High-Contrast Field Checkbox (28px x 28px) */
+    .agro-checkbox {
+        @apply w-7 h-7 rounded-[6px] bg-[#FFFFFF] border-2 border-[#5D4037] text-[#1B5E20] cursor-pointer transition-colors duration-150;
+        box-shadow: none !important;
+    }
+
+    .agro-checkbox:checked {
+        background-color: #1B5E20 !important;
+        border-color: #1B5E20 !important;
+    }
+
+    .agro-checkbox:focus {
+        outline: 3px solid #1B5E20 !important;
+        outline-offset: 2px !important;
+        box-shadow: none !important;
+        --tw-ring-shadow: 0 0 #0000 !important;
+    }
 }
