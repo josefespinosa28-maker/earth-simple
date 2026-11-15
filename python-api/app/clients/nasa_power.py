@@ -1,6 +1,8 @@
-import httpx
 from datetime import date
+
+import httpx
 from fastapi import HTTPException
+
 from app.core.config import settings
 
 
@@ -55,3 +57,8 @@ class NasaPowerClient:
                     status_code=502,
                     detail=f"NASA POWER API devolvió un error HTTP {exc.response.status_code}.",
                 )
+            except httpx.RequestError as exc:
+                raise HTTPException(
+                    status_code=502,
+                    detail="No fue posible establecer conexión con NASA POWER API.",
+                ) from exc
