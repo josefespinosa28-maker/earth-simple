@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Controllers\AnalisisParcelaController;
 use App\Services\MotorAgroNasaService;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/analisis-parcela', AnalisisParcelaController::class);
 
 Route::get('/probar-nasa', function (MotorAgroNasaService $servicioAgro) {
     $parcelaPrueba = [
